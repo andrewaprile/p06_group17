@@ -62,7 +62,7 @@ void query(ifstream &in1, ifstream &in2, ofstream &o) {
     if (!isNumber(first))
         throw FileContentException();
     int size = string_to_int(first);
-    //cout << "Number of cities: " << size << endl;
+   // cout << "Number of cities: " << size << endl;
 
     // get the names of the cities
     string name;
@@ -89,46 +89,82 @@ void query(ifstream &in1, ifstream &in2, ofstream &o) {
 
     string line;
     while (in1 >> weight && count < size * size) {
-        // cout << "Reading weight: " << weight << endl;
+        //Find the delimiter '|' to separate time and cost
         size_t pos = weight.find('|');
-        string timeEntry = weight.substr(0,pos);
-        string costEntry = weight.substr(pos + 1);
-        cout << timeEntry << ", " << costEntry << endl;
-        // int a = string_to_int(weight.substr(0, pos));
-        // int b = string_to_int(weight.substr(pos + 1));
-        // cout << "a: " << a << ", b: " << b << endl;
-        //cout << numeric_limits<int>::max() << endl;
+        //split the weight string into time and cost entries
+        string timeEntryString = weight.substr(0,pos);
+        string costEntryString = weight.substr(pos + 1);
+        //make integer versions of the entries
+        int timeEntryInt = string_to_int(timeEntryString); 
+        int costEntryInt = string_to_int(costEntryString);
 
+        // next line is for debugging output
+        //cout << timeEntryString << ", " << costEntryString << endl;
 
-        if (timeEntry == "INF") {  // no connection between two vertices
+        // Insert Time Entries into Time Adjacency Matrix
+        if (timeEntryString == "INF") {  // no connection between two vertices
             adjTime[count / size][count % size] = numeric_limits<int>::max();
         }
-        else if (!isNumber(timeEntry)) {
-            cout << "Invalid weight: " << timeEntry << endl;
+        else if (!isNumber(timeEntryString)) {
+            cout << "Invalid weight: " << timeEntryString << endl;
             throw FileContentException();
         }
         else {
-            timeEntry = string_to_int(timeEntry);
-            adjTime[count / size][count % size] = string_to_int(timeEntry);
+            adjTime[count / size][count % size] = timeEntryInt;
         }
-
-        if (costEntry == "INF") {  // no connection between two vertices
+       
+        // Insert Cost Entries into Cost Adjacency Matrix
+        if (costEntryString == "INF") {  // no connection between two vertices
             adjCost[count / size][count % size] = numeric_limits<int>::max();
         }
-        else if (!isNumber(costEntry)) {
-            cout << "Invalid weight: " << costEntry << endl;
+        else if (!isNumber(costEntryString)) {
+            cout << "Invalid weight: " << costEntryString << endl;
             throw FileContentException();
         }
         else {
-            costEntry = string_to_int(costEntry);
-            adjCost[count / size][count % size] = string_to_int(costEntry);
+            adjCost[count / size][count % size] = costEntryInt;
         }
         count++;
     }
+    cout << endl;
     
+    //Uncomment to see adjacency matrices for debugging
+    /*
+     cout << "Adjacency Matrix for Time" << endl;
+        for (int i=0; i<size; i++) {
+            for (int j=0; j<size; j++) {
+                if (adjTime[i][j] == numeric_limits<int>::max()) {
+                    cout << "inf" << " ";
+                }
+                else {
+                    cout << adjTime[i][j] << " ";
+                }
+                cout << "\t";
+            }
+            cout << endl;
+        }
+    cout << endl;
+    cout << "Adjacency Matrix for Cost" << endl;
+        for (int i=0; i<size; i++) {
+            for (int j=0; j<size; j++) {
+                if (adjCost[i][j] == numeric_limits<int>::max()) {
+                    cout << "inf" << " ";
+                }
+                else{
+                    cout << adjCost[i][j] << " ";
+                }
+                cout << "\t";
+            }
+            cout << endl;
+        }
+    cout << endl;
+    */
+
+
     if (count != size * size)
         throw FileContentException();
     
+    // Make two separate digraphs;  one for time and one for cost
     Digraph<int> graphTime(adjTime, size);
     Digraph<int> graphCost(adjCost, size);
 
@@ -140,48 +176,67 @@ void query(ifstream &in1, ifstream &in2, ofstream &o) {
         ss >> src;
         ss >> dst;
         ss >> mode;
-        cout << "Query from " << src << " to " << dst << " by " << mode << endl;
+        // next line is for debugging output
+        if (mode == "T"){
+            cout << src << " to " << dst << " by " << mode << "ime: ";
+        }
+        else if(mode == "C"){
+            cout << src << " to " << dst << " by " << mode << "ost: ";
+        }
+        // cout << src << " to " << dst << " by " << mode << endl;
 
         if (cities.find(src) == cities.end() || cities.find(dst) == cities.end()) {
             cout << "Invalid query: the queried city is not in the map." << endl;
         }
         else {
+            // use if statement to choose to use either time or cost graph
             if (mode == "T"){
                 int result = graphTime.get_shortest_path(cities[src], cities[dst]);
                 if (result == numeric_limits<int>::max()) {
-                    o << "No available path." << endl;
+                    o << "No available path" << endl;
+                    cout << "No available path" << endl;
                 }
                 else {
                     o << result << endl;
+                    if (mode == "T"){
+                        cout << result << " minutes" << endl;
+                    }
+                    else{
+                        cout << "$" << result << endl;
+                    }
                 }
             } 
             else if (mode == "C"){
                 int result = graphCost.get_shortest_path(cities[src], cities[dst]);
                 if (result == numeric_limits<int>::max()) {
-                    o << "No available path." << endl;
+                    o << "No available path" << endl;
+                    cout << "No available path" << endl;
                 }
                 else {
                     o << result << endl;
+                    if (mode == "T"){
+                        cout << result << " minutes" << endl;
+                    }
+                    else{
+                        cout << "$" << result << endl;
+                    }                    
                 }
             }
         }
     }
 
-    // clean up
-    for (int i = 0; i < size; i++) {
+    // clean up dynamic memory
+    for (int i = 0; i < size; i++) 
         delete[] adjTime[i];
-    }
-    delete[] adjTime;
-
-    for (int i = 0; i < size; i++) {
+    for (int i = 0; i < size; i++)
         delete[] adjCost[i];
-    }
+    delete[] adjTime;
     delete[] adjCost;
 }
 
 int main(int argc, char* argv[])
 {
-  try {
+    try {
     // handle command line input
     if (argc != 4) {
         throw CommandLineException();
